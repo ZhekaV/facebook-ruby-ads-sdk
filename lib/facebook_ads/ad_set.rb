@@ -87,10 +87,11 @@ module FacebookAds
       Ad.paginate("/#{id}/ads", query: { effective_status: effective_status, limit: limit })
     end
 
-    def create_ad(name:, creative_id:, status: 'PAUSED')
+    def create_ad(name:, creative_id:, status: 'PAUSED', access_token: '')
       query = { name: name, adset_id: id, creative: { creative_id: creative_id }.to_json, status: status }
+      query[:access_token] = access_token if access_token
       result = Ad.post("/act_#{account_id}/ads", query: query)
-      Ad.find(result['id'])
+      Ad.find(result['id'], query: { access_token: access_token })
     end
 
     # AdInsight

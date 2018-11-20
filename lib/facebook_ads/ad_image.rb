@@ -24,8 +24,8 @@ module FacebookAds
       raise Exception, 'NOT IMPLEMENTED'
     end
 
-    def destroy
-      super(path: "/act_#{account_id}/adimages", query: { hash: self[:hash] })
+    def destroy(access_token: '')
+      super(path: "/act_#{account_id}/adimages", query: { hash: self[:hash], access_token: access_token })
     end
   end
 end

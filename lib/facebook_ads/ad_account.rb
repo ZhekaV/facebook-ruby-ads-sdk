@@ -25,23 +25,23 @@ module FacebookAds
 
     # AdCampaign
 
-    def ad_campaigns(effective_status: ['ACTIVE'], limit: 100)
-      AdCampaign.paginate("/#{id}/campaigns", query: { effective_status: effective_status, limit: limit })
+    def ad_campaigns(effective_status: ['ACTIVE'], limit: 100, access_token: '')
+      AdCampaign.paginate("/#{id}/campaigns", query: { access_token: access_token, effective_status: effective_status, limit: limit })
     end
 
-    def create_ad_campaign(name:, objective:, status: 'ACTIVE')
+    def create_ad_campaign(name:, objective:, status: 'ACTIVE', access_token: '')
       raise Exception, "Objective must be one of: #{AdCampaign::OBJECTIVES.join(', ')}" unless AdCampaign::OBJECTIVES.include?(objective)
       raise Exception, "Status must be one of: #{AdCampaign::STATUSES.join(', ')}" unless AdCampaign::STATUSES.include?(status)
-      query = { name: name, objective: objective, status: status }
+      query = { name: name, objective: objective, status: status, access_token: access_token }
       result = AdCampaign.post("/#{id}/campaigns", query: query)
-      AdCampaign.find(result['id'])
+      AdCampaign.find(result['id'], query: { access_token: access_token })
     end
 
-    def create_dynamic_ad_campaign(name:, product_catalog_id:, status: 'ACTIVE')
+    def create_dynamic_ad_campaign(name:, product_catalog_id:, status: 'ACTIVE', access_token: '')
       raise Exception, "Status must be one of: #{AdCampaign::STATUSES.join(', ')}" unless AdCampaign::STATUSES.include?(status)
       query = { name: name, objective: 'PRODUCT_CATALOG_SALES', status: status, promoted_object: { product_catalog_id: product_catalog_id } }
       result = AdCampaign.post("/#{id}/campaigns", query: query)
-      AdCampaign.find(result['id'])
+      AdCampaign.find(result['id'], query: { access_token: access_token })
     end
 
     # AdSet
@@ -58,43 +58,43 @@ module FacebookAds
 
     # AdImage
 
-    def ad_images(hashes: nil, limit: 100)
+    def ad_images(hashes: nil, limit: 100, access_token: '')
       if !hashes.nil?
-        AdImage.get("/#{id}/adimages", query: { hashes: hashes }, objectify: true)
+        AdImage.get("/#{id}/adimages", query: { hashes: hashes, access_token: access_token }, objectify: true)
       else
-        AdImage.paginate("/#{id}/adimages", query: { limit: limit })
+        AdImage.paginate("/#{id}/adimages", query: { limit: limit, access_token: access_token })
       end
     end
 
-    def create_ad_images(urls)
+    def create_ad_images(urls, access_token: '')
       files = urls.map do |url|
         name, path = download(url)
         [name, File.open(path)]
       end.to_h
 
-      response = AdImage.post("/#{id}/adimages", query: files)
+      response = AdImage.post("/#{id}/adimages", query: files.merge(access_token: access_token))
       files.values.each { |file| File.delete(file.path) }
-      !response['images'].nil? ? ad_images(hashes: response['images'].map { |_key, hash| hash['hash'] }) : []
+      !response['images'].nil? ? ad_images(access_token: access_token, hashes: response['images'].map { |_key, hash| hash['hash'] }) : []
     end
 
     # AdCreative
 
-    def ad_creatives(limit: 100)
-      AdCreative.paginate("/#{id}/adcreatives", query: { limit: limit })
+    def ad_creatives(limit: 100, access_token: '')
+      AdCreative.paginate("/#{id}/adcreatives", query: { access_token: access_token, limit: limit })
     end
 
-    def create_ad_creative(creative, creative_type: nil, carousel: false)
+    def create_ad_creative(creative, creative_type: nil, carousel: false, access_token: '')
       # Support old deprecated carousel param
-      return create_carousel_ad_creative(creative) if carousel
+      return create_carousel_ad_creative(creative, access_token: access_token) if carousel
       case creative_type
       when 'carousel'
-        create_carousel_ad_creative(creative)
+        create_carousel_ad_creative(creative, access_token: access_token)
       when 'link'
-        create_link_ad_creative(creative)
+        create_link_ad_creative(creative, access_token: access_token)
       when 'image'
-        create_image_ad_creative(creative)
+        create_image_ad_creative(creative, access_token: access_token)
       else
-        create_image_ad_creative(creative)
+        create_image_ad_creative(creative, access_token: access_token)
       end
     end
 
@@ -104,7 +104,7 @@ module FacebookAds
       AdAudience.paginate("/#{id}/customaudiences", query: { limit: limit })
     end
 
-    def create_ad_audience_with_pixel(name:, pixel_id:, event_name:, subtype: 'WEBSITE', retention_days: 15)
+    def create_ad_audience_with_pixel(name:, pixel_id:, event_name:, subtype: 'WEBSITE', retention_days: 15, access_token: '')
       query = {
         name: name,
         pixel_id: pixel_id,
@@ -115,7 +115,7 @@ module FacebookAds
       }
 
       result = AdAudience.post("/#{id}/customaudiences", query: query)
-      AdAudience.find(result['id'])
+      AdAudience.find(result['id'], query: { access_token: access_token })
     end
 
     # AdInsight
@@ -168,7 +168,7 @@ module FacebookAds
 
     private
 
-    def create_carousel_ad_creative(creative)
+    def create_carousel_ad_creative(creative, access_token: '')
       required = %i[name page_id link message assets call_to_action_type multi_share_optimized multi_share_end_card]
 
       unless (keys = required - creative.keys).length.zero?
@@ -195,7 +195,7 @@ module FacebookAds
       AdCreative.find(result['id'])
     end
 
-    def create_image_ad_creative(creative)
+    def create_image_ad_creative(creative, access_token: '')
       required = %i[name page_id message link link_title image_hash call_to_action_type]
 
       unless (keys = required - creative.keys).length.zero?
@@ -204,20 +204,22 @@ module FacebookAds
 
       raise Exception, "Creative call_to_action_type must be one of: #{AdCreative::CALL_TO_ACTION_TYPES.join(', ')}" unless AdCreative::CALL_TO_ACTION_TYPES.include?(creative[:call_to_action_type])
       query = AdCreative.photo(creative)
+      query[:access_token] = access_token if access_token
       result = AdCreative.post("/#{id}/adcreatives", query: query)
-      AdCreative.find(result['id'])
+      AdCreative.find(result['id'], query: { access_token: access_token })
     end
 
-    def create_link_ad_creative(creative)
-      required = %i[name title body object_url link_url image_hash page_id]
+    def create_link_ad_creative(creative, access_token: '')
+      required = %i[name title body link_url image_hash page_id]
 
       unless (keys = required - creative.keys).length.zero?
         raise Exception, "Creative is missing the following: #{keys.join(', ')}"
       end
 
       query = AdCreative.link(creative)
+      query[:access_token] = access_token if access_token
       result = AdCreative.post("/#{id}/adcreatives", query: query)
-      AdCreative.find(result['id'])
+      AdCreative.find(result['id'], query: { access_token: access_token })
     end
 
     def download(url)
