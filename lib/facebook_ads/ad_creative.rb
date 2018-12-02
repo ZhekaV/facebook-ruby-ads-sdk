@@ -109,6 +109,14 @@ module FacebookAds
           object_story_spec: object_story_spec.to_json
         }
       end
+
+      def messenger_sponsored_message(page_id:, messenger_sponsored_message:)
+        {
+          object_id:                    page_id,
+          object_type:                  'SHARE',
+          messenger_sponsored_message:  messenger_sponsored_message.to_json
+        }
+      end
     end
   end
 end

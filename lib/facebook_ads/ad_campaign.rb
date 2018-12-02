@@ -39,6 +39,7 @@ module FacebookAds
       LEAD_GENERATION
       LINK_CLICKS
       LOCAL_AWARENESS
+      MESSAGES
       OFFER_CLAIMS
       PAGE_LIKES
       POST_ENGAGEMENT

@@ -93,6 +93,8 @@ module FacebookAds
         create_link_ad_creative(creative, access_token: access_token)
       when 'image'
         create_image_ad_creative(creative, access_token: access_token)
+      when 'messenger_sponsored_message'
+        create_messenger_sponsored_message_creative(creative, access_token: access_token)
       else
         create_image_ad_creative(creative, access_token: access_token)
       end
@@ -217,6 +219,19 @@ module FacebookAds
       end
 
       query = AdCreative.link(creative)
+      query[:access_token] = access_token if access_token
+      result = AdCreative.post("/#{id}/adcreatives", query: query)
+      AdCreative.find(result['id'], query: { access_token: access_token })
+    end
+
+    def create_messenger_sponsored_message_creative(creative, access_token: '')
+      required = %i[page_id messenger_sponsored_message]
+
+      unless (keys = required - creative.keys).length.zero?
+        raise Exception, "Creative is missing the following: #{keys.join(', ')}"
+      end
+
+      query = AdCreative.messenger_sponsored_message(creative)
       query[:access_token] = access_token if access_token
       result = AdCreative.post("/#{id}/adcreatives", query: query)
       AdCreative.find(result['id'], query: { access_token: access_token })

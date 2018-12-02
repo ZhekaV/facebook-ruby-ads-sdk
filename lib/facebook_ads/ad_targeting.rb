@@ -16,8 +16,10 @@ module FacebookAds
     NOT_INSTALLED      = 'not_installed'
     APP_INSTALL_STATES = [INSTALLED, NOT_INSTALLED].freeze
     PLATFORMS          = %w[facebook instagram messenger audience_network].freeze
+    MESSENGER_POSITIONS = %w[messenger_home sponsored_messages story].freeze
 
-    attr_accessor :genders, :age_min, :age_max, :countries, :user_os, :user_device, :app_install_state, :custom_locations, :income, :platforms
+    attr_accessor :genders, :age_min, :age_max, :countries, :user_os, :user_device, :app_install_state,
+                  :custom_locations, :income, :platforms, :custom_audiences, :messenger_positions
 
     def initialize
       # self.genders = [WOMEN] # If nil, defaults to all genders.
@@ -27,6 +29,7 @@ module FacebookAds
       # self.user_device = ANDROID_DEVICES
       # self.app_install_state = NOT_INSTALLED
       self.income = [] # An a rray of objects with 'id' and optional 'name'
+      self.custom_audiences = []
     end
 
     def geo_locations
@@ -44,13 +47,13 @@ module FacebookAds
     end
 
     def validate!
-      { gender: genders, countries: countries, user_os: user_os, user_device: user_device, custom_locations: custom_locations, platforms: platforms }.each_pair do |key, array|
+      { gender: genders, countries: countries, user_os: user_os, user_device: user_device, custom_locations: custom_locations, platforms: platforms, messenger_positions: messenger_positions }.each_pair do |key, array|
         if !array.nil? && !array.is_a?(Array)
           raise Exception, "#{self.class.name}: #{key} must be an array"
         end
       end
 
-      { genders: [genders, GENDERS], user_os: [user_os, OSES], user_device: [user_device, DEVICES], platforms: [platforms, PLATFORMS] }.each_pair do |key, provided_and_acceptable|
+      { genders: [genders, GENDERS], user_os: [user_os, OSES], user_device: [user_device, DEVICES], platforms: [platforms, PLATFORMS], messenger_positions: [messenger_positions, MESSENGER_POSITIONS] }.each_pair do |key, provided_and_acceptable|
         provided, acceptable = provided_and_acceptable
 
         if !provided.nil? && !(invalid = provided.detect { |value| !acceptable.include?(value) }).nil?
@@ -71,7 +74,9 @@ module FacebookAds
         user_device: user_device,
         app_install_state: app_install_state,
         income: income,
-        publisher_platforms: publisher_platforms
+        publisher_platforms: publisher_platforms,
+        custom_audiences: custom_audiences.empty? ? nil : custom_audiences.map { |ca| { id: ca } },
+        messenger_positions: messenger_positions
       }.reject { |_k, v| v.nil? }
     end
   end
