@@ -81,7 +81,9 @@ module FacebookAds
         billing_event: billing_event,
         status: status,
         bid_strategy: bid_strategy,
-        bid_amount: bid_amount
+        bid_amount: bid_amount,
+        start_time: start_time,
+        end_time: end_time
       }
 
       if daily_budget && lifetime_budget
@@ -90,7 +92,6 @@ module FacebookAds
         query[:daily_budget] = daily_budget
       elsif lifetime_budget
         query[:lifetime_budget] = lifetime_budget
-        query[:end_time] = end_time
       end
 
       query[:access_token] = access_token if access_token
